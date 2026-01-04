@@ -1,5 +1,10 @@
-import { FormData, ExpenseItem } from '../models/FormData'
+import { FormData, ExpenseItem, HistoryRecord } from '../models/FormData'
 import router from '@ohos.router'
+
+// 初始化持久化存储，key 为 'appHistoryStr'，默认值为空数组的 JSON
+PersistentStorage.PersistProp('appHistoryStr', '[]')
+// 初始化提交成功标记
+AppStorage.SetOrCreate('submitSuccess', false)
 
 @Entry
 @Component
@@ -36,24 +41,56 @@ struct Preview {
     }
   }
 
-  // 获取总金额
+  // 获取总金额（原有方法）
   getTotalAmount(): number {
     return this.expenseList.reduce((sum, item) => {
-      // 此时 item 是真正的 ExpenseItem 实例，方法可以调用
       return sum + (item.getAmountNumber ? item.getAmountNumber() : 0)
     }, 0)
   }
 
   confirmSubmit() {
-    AlertDialog.show({
-      message: '报销申请提交成功！',
-      confirm: {
-        value: '确定',
-        action: () => {
-          router.back()
-        }
+    try {
+      // 1. 构建新的历史记录对象
+      const newRecord: HistoryRecord = {
+        id: Date.now().toString(),
+        timestamp: Date.now(),
+        totalAmount: this.getTotalAmount(),
+        // 再次序列化，确保只存数据，不存类的方法
+        summary: `${this.formData.travelerName || '未命名'} - ${this.formData.travelCity || '未知城市'}`,
+        formDataStr: JSON.stringify(this.formData),
+        expenseListStr: JSON.stringify(this.expenseList)
       }
-    })
+
+      // 2. 获取现有的历史记录
+      let historyStr = AppStorage.Get<string>('appHistoryStr') || '[]'
+      let historyList = JSON.parse(historyStr) as HistoryRecord[]
+
+      // 3. 添加新记录到头部
+      historyList.unshift(newRecord)
+
+      // 4. 保存回持久化存储
+      AppStorage.SetOrCreate('appHistoryStr', JSON.stringify(historyList))
+
+      // 5. 设置全局标记：告诉 Index 页面“我已经提交成功了，请清空表单”
+      AppStorage.SetOrCreate('submitSuccess', true)
+
+      // 6. 弹窗并返回
+      AlertDialog.show({
+        message: '提交成功！已保存到历史记录。',
+        confirm: {
+          value: '回到首页',
+          action: () => {
+            // 清空表单，返回 Index 页面
+            AppStorage.SetOrCreate('shouldClearForm', true)
+            router.back({ url: 'pages/Index' })
+          }
+        }
+      })
+
+    } catch (error) {
+      console.error('保存历史记录失败:', error)
+      AlertDialog.show({ message: '提交失败: ' + error.message })
+    }
   }
 
   @Builder previewItem(label: string, value: string, highlight: boolean = false) {

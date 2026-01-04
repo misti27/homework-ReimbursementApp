@@ -6,6 +6,7 @@ export struct ExpenseItemCard {
   @Prop index: number = 0
   onDelete: () => void = () => {}
   onShowCalculator: (index: number) => void = () => {}
+  onValueChange: () => void = () => {}
 
   @State expenseTypes: string[] = ['交通费', '住宿费', '餐饮费', '其他']
   @State showTypePicker: boolean = false
@@ -38,14 +39,22 @@ export struct ExpenseItemCard {
           .fontSize(14)
           .width(60)
 
-        Button(this.item.type)
-          .fontSize(14)
-          .layoutWeight(1)
-          .backgroundColor('#f0f0f0')
-          .fontColor('#333')
-          .onClick(() => {
+        Button() {
+          Text(this.item.type)
+            .fontSize(14)
+            .fontColor('#333')
+        }
+        .type(ButtonType.Normal) // 设为普通按钮样式
+        .layoutWeight(1)
+        .backgroundColor('#f0f0f0')
+        .height(32) // 显式给个高度看起来更整齐
+        .borderRadius(4)
+        .onClick(() => {
+          // 添加动画效果让显隐更丝滑（可选）
+          animateTo({ duration: 200 }, () => {
             this.showTypePicker = !this.showTypePicker
           })
+        })
       }
 
       if (this.showTypePicker) {
@@ -78,13 +87,13 @@ export struct ExpenseItemCard {
 
         TextInput({
           placeholder: '0.00',
-          text: this.item.amount
+          text: $$this.item.amount
         })
           .type(InputType.Number)
           .layoutWeight(1)
           .onChange((value: string) => {
             try {
-              this.item.amount = value ?? ''
+              this.onValueChange()
             } catch (error) {
               console.error('金额输入异常:', error)
             }

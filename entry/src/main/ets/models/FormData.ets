@@ -53,6 +53,7 @@ export class FormData {
   }
 }
 
+@Observed
 export class ExpenseItem {
   id: string = ''
   type: string = '交通费'
@@ -92,4 +93,13 @@ export class ExpenseItem {
 export interface ValidationResult {
   isValid: boolean
   errors: string[]
+}
+
+export interface HistoryRecord {
+  id: string
+  timestamp: number // 提交时间
+  totalAmount: number // 总金额
+  formDataStr: string // 序列化后的基本信息
+  expenseListStr: string // 序列化后的费用列表
+  summary: string
 }

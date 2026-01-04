@@ -24,9 +24,10 @@ export struct FormField {
           .width(80)
       }
 
+      //待修改，预览器里无法直接打字
       TextInput({
         placeholder: this.placeholder,
-        text: this.value
+        text: $$this.value
       })
         .width('60%')
         .onChange((value: string) => {

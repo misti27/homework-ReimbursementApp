@@ -55,6 +55,7 @@ export struct BaseInfo {
             label: '开始日期',
             value: this.formData.startDate,
             placeholder: '例如: 2024-01-15',
+            required: true,
             onChange: (val: string) => {
               this.formData.startDate = val
             }
@@ -66,6 +67,7 @@ export struct BaseInfo {
             label: '结束日期',
             value: this.formData.endDate,
             placeholder: '例如: 2024-01-20',
+            required: true,
             onChange: (val: string) => {
               this.formData.endDate = val
             }
