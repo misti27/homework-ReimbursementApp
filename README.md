@@ -64,4 +64,4 @@
 ## 五、 运行环境
 
 *   **IDE**: DevEco Studio 3.1+
-*   **SDK**: HarmonyOS API 9 / API 11+
+*   **SDK**: HarmonyOS 6.0.1(21)
