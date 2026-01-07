@@ -1,5 +1,3 @@
-// src/main/ets/components/BaseInfo.ets
-
 import { FormData } from '../models/FormData'
 import { FormField, DateFormField } from './FormField'
 

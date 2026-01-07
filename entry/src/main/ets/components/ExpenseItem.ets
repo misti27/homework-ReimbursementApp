@@ -3,24 +3,17 @@ import { ExpenseItemCard } from './ExpenseItemCard'
 
 @Component
 export struct ExpenseItemSection {
-  // 接收 Index 页面提供的数组
   @Consume('expenseList') expenseList: ExpenseItem[]
 
-  // 回调函数定义
   onShowCalculator: (show: boolean, index: number) => void = () => {}
 
-  // 【新增】用于强制触发UI刷新的状态变量
-  // 因为数组内部对象的属性变化不会自动触发本组件的重绘（计算总额）
   @State private watcher: number = 0
 
   getTotalAmount(): number {
-    // 引用 watcher，确保当 watcher 改变时，Text 组件会重新执行这个函数
-    // 这一行看起来没用，但实际上是为了建立依赖关系
     this.watcher
 
     try {
       return this.expenseList.reduce((sum, item) => {
-        // 调用 item 的方法获取数值
         return sum + (item.getAmountNumber ? item.getAmountNumber() : 0)
       }, 0)
     } catch (error) {
@@ -60,7 +53,6 @@ export struct ExpenseItemSection {
           .fontSize(18)
           .fontWeight(FontWeight.Bold)
 
-        // 这里调用 getTotalAmount
         Text(`总计: ¥${this.getTotalAmount().toFixed(2)}`)
           .fontSize(16)
           .fontColor('#1890ff')
@@ -82,7 +74,7 @@ export struct ExpenseItemSection {
               onShowCalculator: (idx: number) => {
                 this.onShowCalculator(true, idx)
               },
-              // 【新增】传入一个回调，当子组件数值变化时，刷新父组件状态
+              // 传入一个回调，当子组件数值变化时，刷新父组件状态
               onValueChange: () => {
                 this.watcher += 1
               }

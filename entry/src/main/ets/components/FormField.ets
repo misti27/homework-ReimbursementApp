@@ -1,9 +1,7 @@
-// src/main/ets/components/FormField.ets
-
 @Component
 export struct FormField {
   @Prop label: string = ''
-  @Prop value: string = '' // 【重要】改回 @Prop，解决报错
+  @Prop value: string = ''
   @Prop placeholder: string = ''
   @Prop required: boolean = false
   onChange: (value: string) => void = () => {}
@@ -31,9 +29,9 @@ export struct FormField {
         text: this.value
       })
         .width('60%')
-        .height(40) // 确保高度一致
-        .backgroundColor('#F1F3F5') // 统一背景色
-        .borderRadius(20) // 统一圆角
+        .height(40)
+        .backgroundColor('#F1F3F5')
+        .borderRadius(20)
         .onChange((value: string) => {
           this.onChange(value)
         })
@@ -45,7 +43,6 @@ export struct FormField {
 
 /**
  * 日期选择组件（DateFormField）
- * 保持不变，它使用 @Prop 是正确的
  */
 @Component
 export struct DateFormField {

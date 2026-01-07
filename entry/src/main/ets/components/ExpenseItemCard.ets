@@ -47,10 +47,9 @@ export struct ExpenseItemCard {
         .type(ButtonType.Normal) // 设为普通按钮样式
         .layoutWeight(1)
         .backgroundColor('#f0f0f0')
-        .height(32) // 显式给个高度看起来更整齐
+        .height(32)
         .borderRadius(4)
         .onClick(() => {
-          // 添加动画效果让显隐更丝滑（可选）
           animateTo({ duration: 200 }, () => {
             this.showTypePicker = !this.showTypePicker
           })
