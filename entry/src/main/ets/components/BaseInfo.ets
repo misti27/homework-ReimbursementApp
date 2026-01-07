@@ -1,5 +1,7 @@
+// src/main/ets/components/BaseInfo.ets
+
 import { FormData } from '../models/FormData'
-import { FormField } from './FormField'
+import { FormField, DateFormField } from './FormField'
 
 @Component
 export struct BaseInfo {
@@ -14,6 +16,7 @@ export struct BaseInfo {
 
       List({ space: 12 }) {
 
+        // 1. 出差人
         ListItem() {
           FormField({
             label: '出差人',
@@ -26,6 +29,7 @@ export struct BaseInfo {
           })
         }
 
+        // 2. 部门
         ListItem() {
           FormField({
             label: '部门',
@@ -38,6 +42,7 @@ export struct BaseInfo {
           })
         }
 
+        // 3. 出差事由
         ListItem() {
           FormField({
             label: '出差事由',
@@ -50,62 +55,51 @@ export struct BaseInfo {
           })
         }
 
-        // ===== 开始日期 =====
+        // 4. 开始日期 (使用 DateFormField)
         ListItem() {
-          Row() {
-            Text('开始日期')
-              .fontSize(14)
-              .fontWeight(FontWeight.Medium)
-              .width(80)
-
-            Text(this.formData.startDate || '请选择日期')
-              .fontSize(14)
-              .onClick(() => {
-                DatePickerDialog.show({
-                  start: new Date(2000, 0, 1),
-                  end: new Date(2100, 11, 31),
-                  onAccept: (value: DatePickerResult) => {
-                    const year = value.year
-                    const month = String((value.month??0) + 1).padStart(2, '0')
-                    const day = String(value.day).padStart(2, '0')
-
-                    this.formData.startDate = `${year}-${month}-${day}`
-                  }
-                })
+          DateFormField({
+            label: '开始日期',
+            value: this.formData.startDate,
+            placeholder: '请选择日期',
+            required: true,
+            onDateClick: () => {
+              DatePickerDialog.show({
+                start: new Date(2000, 0, 1),
+                end: new Date(2100, 11, 31),
+                onAccept: (value: DatePickerResult) => {
+                  const year = value.year
+                  const month = String((value.month ?? 0) + 1).padStart(2, '0')
+                  const day = String(value.day).padStart(2, '0')
+                  this.formData.startDate = `${year}-${month}-${day}`
+                }
               })
-          }
-          .justifyContent(FlexAlign.SpaceBetween)
-          .alignItems(VerticalAlign.Center)
+            }
+          })
         }
 
-        // ===== 结束日期 =====
+        // 5. 结束日期 (使用 DateFormField)
         ListItem() {
-          Row() {
-            Text('结束日期')
-              .fontSize(14)
-              .fontWeight(FontWeight.Medium)
-              .width(80)
-
-            Text(this.formData.endDate || '请选择日期')
-              .fontSize(14)
-              .onClick(() => {
-                DatePickerDialog.show({
-                  start: new Date(2000, 0, 1),
-                  end: new Date(2100, 11, 31),
-                  onAccept: (value: DatePickerResult) => {
-                    const year = value.year
-                    const month = String((value.month??0) + 1).padStart(2, '0')
-                    const day = String(value.day).padStart(2, '0')
-
-                    this.formData.endDate = `${year}-${month}-${day}`
-                  }
-                })
+          DateFormField({
+            label: '结束日期',
+            value: this.formData.endDate,
+            placeholder: '请选择日期',
+            required: true,
+            onDateClick: () => {
+              DatePickerDialog.show({
+                start: new Date(2000, 0, 1),
+                end: new Date(2100, 11, 31),
+                onAccept: (value: DatePickerResult) => {
+                  const year = value.year
+                  const month = String((value.month ?? 0) + 1).padStart(2, '0')
+                  const day = String(value.day).padStart(2, '0')
+                  this.formData.endDate = `${year}-${month}-${day}`
+                }
               })
-          }
-          .justifyContent(FlexAlign.SpaceBetween)
-          .alignItems(VerticalAlign.Center)
+            }
+          })
         }
 
+        // 6. 出差城市
         ListItem() {
           FormField({
             label: '出差城市',
