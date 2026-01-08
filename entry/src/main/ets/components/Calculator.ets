@@ -69,6 +69,7 @@ export struct Calculator {
 
       this.displayValue = result.toFixed(2)
       this.currentOperator = ''
+      this.previousValue = '' // 计算完成后清空过程
       this.shouldResetDisplay = true
 
     } catch (error) {
@@ -126,27 +127,50 @@ export struct Calculator {
   }
 
   build() {
-    Stack() {
+    // 使用 RelativeContainer 实现布局 (符合实验要求)
+    RelativeContainer() {
+      // 1. 蒙层
       Column()
-        .width('100%')
-        .height('100%')
         .backgroundColor('rgba(0,0,0,0.5)')
+        .id('mask')
+        .alignRules({
+          top: { anchor: '__container__', align: VerticalAlign.Top },
+          bottom: { anchor: '__container__', align: VerticalAlign.Bottom },
+          left: { anchor: '__container__', align: HorizontalAlign.Start },
+          right: { anchor: '__container__', align: HorizontalAlign.End }
+        })
         .onClick(() => {
           this.onClose()
           this.clear()
         })
 
+      // 2. 计算器主体面板
       Column() {
-        Text(this.displayValue)
-          .width('100%')
-          .height(80)
-          .fontSize(36)
-          .fontWeight(FontWeight.Bold)
-          .textAlign(TextAlign.End)
-          .padding({ right: 20 })
-          .backgroundColor('#f0f0f0')
-          .borderRadius({ topLeft: 12, topRight: 12 })
+        // --- 屏幕显示区域 ---
+        Column() {
+          // 【修复点 1】新增：显示计算过程（如 "100 +"）
+          Text(this.currentOperator ? `${this.previousValue} ${this.currentOperator}` : '')
+            .width('100%')
+            .height(30)
+            .fontSize(20)
+            .fontColor(Color.Gray)
+            .textAlign(TextAlign.End)
+            .padding({ right: 20, top: 5 })
 
+          // 主显示（结果或当前输入）
+          Text(this.displayValue)
+            .width('100%')
+            .height(60)
+            .fontSize(36)
+            .fontWeight(FontWeight.Bold)
+            .textAlign(TextAlign.End)
+            .padding({ right: 20, bottom: 5 })
+        }
+        .backgroundColor('#f0f0f0')
+        .borderRadius({ topLeft: 12, topRight: 12 })
+        .width('100%')
+
+        // --- 键盘区域 ---
         Column({ space: 8 }) {
           this.buttonRow(['7', '8', '9', '÷'])
           this.buttonRow(['4', '5', '6', '×'])
@@ -183,10 +207,15 @@ export struct Calculator {
         .layoutWeight(1)
       }
       .width('90%')
-      .height(480)
+      .height(500) // 稍微调高一点以容纳新的一行字
       .backgroundColor(Color.White)
       .borderRadius(12)
-      .position({ x: '5%', y: '20%' })
+      .id('panel')
+      // 使用相对定位规则
+      .alignRules({
+        middle: { anchor: '__container__', align: HorizontalAlign.Center },
+        center: { anchor: '__container__', align: VerticalAlign.Center }
+      })
     }
     .width('100%')
     .height('100%')

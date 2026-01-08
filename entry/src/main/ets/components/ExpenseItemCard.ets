@@ -77,7 +77,7 @@ export struct ExpenseItemCard {
           placeholder: '0.00',
           text: $$this.item.amount // 双向绑定
         })
-          .type(InputType.Number)
+          .type(InputType.Normal)
           .layoutWeight(1)
           .height(32)
           .backgroundColor('#f0f0f0')
