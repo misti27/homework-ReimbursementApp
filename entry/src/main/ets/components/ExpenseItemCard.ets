@@ -4,15 +4,23 @@ import { ExpenseItem } from '../models/FormData'
 export struct ExpenseItemCard {
   @ObjectLink item: ExpenseItem
   @Prop index: number = 0
+
+  // 回调函数
   onDelete: () => void = () => {}
   onShowCalculator: (index: number) => void = () => {}
   onValueChange: () => void = () => {}
 
-  @State expenseTypes: string[] = ['交通费', '住宿费', '餐饮费', '其他']
-  @State showTypePicker: boolean = false
+  // 下拉选项
+  private typeOptions: SelectOption[] = [
+    { value: '交通费' },
+    { value: '住宿费' },
+    { value: '餐饮费' },
+    { value: '其他' }
+  ]
 
   build() {
     Column({ space: 12 }) {
+      // --- 1. 标题栏 + 删除按钮 ---
       Flex({
         justifyContent: FlexAlign.SpaceBetween,
         alignItems: ItemAlign.Center
@@ -31,6 +39,7 @@ export struct ExpenseItemCard {
       }
       .width('100%')
 
+      // --- 2. 费用类型 (使用 Select) ---
       Flex({
         direction: FlexDirection.Row,
         alignItems: ItemAlign.Center
@@ -39,43 +48,23 @@ export struct ExpenseItemCard {
           .fontSize(14)
           .width(60)
 
-        Button() {
-          Text(this.item.type)
-            .fontSize(14)
-            .fontColor('#333')
-        }
-        .type(ButtonType.Normal) // 设为普通按钮样式
-        .layoutWeight(1)
-        .backgroundColor('#f0f0f0')
-        .height(32)
-        .borderRadius(4)
-        .onClick(() => {
-          animateTo({ duration: 200 }, () => {
-            this.showTypePicker = !this.showTypePicker
+        Select(this.typeOptions)
+          .value(this.item.type) // 显示当前值
+          .selected(this.getSelectedIndex())
+          .font({ size: 14 })
+          .fontColor('#333')
+          .selectedOptionFont({ size: 16, weight: FontWeight.Medium })
+          .optionFont({ size: 14 })
+          .height(32)
+          .backgroundColor('#f0f0f0')
+          .borderRadius(4)
+          .layoutWeight(1)
+          .onSelect((index: number, value: string) => {
+            this.item.type = value
           })
-        })
       }
 
-      if (this.showTypePicker) {
-        Column() {
-          ForEach(this.expenseTypes, (type: string) => {
-            Button(type)
-              .width('100%')
-              .backgroundColor(this.item.type === type ? '#1890ff' : '#f0f0f0')
-              .fontColor(this.item.type === type ? Color.White : '#333')
-              .margin({ top: 4 })
-              .onClick(() => {
-                this.item.type = type
-                this.showTypePicker = false
-              })
-          })
-        }
-        .width('100%')
-        .padding(8)
-        .backgroundColor('#fafafa')
-        .borderRadius(4)
-      }
-
+      // --- 3. 金额输入 + 计算器按钮 ---
       Flex({
         direction: FlexDirection.Row,
         alignItems: ItemAlign.Center
@@ -86,16 +75,15 @@ export struct ExpenseItemCard {
 
         TextInput({
           placeholder: '0.00',
-          text: $$this.item.amount
+          text: $$this.item.amount // 双向绑定
         })
           .type(InputType.Number)
           .layoutWeight(1)
+          .height(32)
+          .backgroundColor('#f0f0f0')
+          .borderRadius(4)
           .onChange((value: string) => {
-            try {
-              this.onValueChange()
-            } catch (error) {
-              console.error('金额输入异常:', error)
-            }
+            this.onValueChange()
           })
 
         Button('计算器')
@@ -104,26 +92,30 @@ export struct ExpenseItemCard {
           .margin({ left: 8 })
           .backgroundColor('#1890ff')
           .onClick(() => {
+            // 点击时触发父组件的回调
             this.onShowCalculator(this.index)
           })
       }
 
+      // --- 4. 备注输入 ---
       Flex({
         direction: FlexDirection.Row,
-        alignItems: ItemAlign.Start
+        alignItems: ItemAlign.Center
       }) {
         Text('备注:')
           .fontSize(14)
           .width(60)
-          .margin({ top: 8 })
 
         TextInput({
-          placeholder: '请输入备注',
+          placeholder: '请输入备注 (选填)',
           text: this.item.remarks
         })
           .layoutWeight(1)
+          .height(32)
+          .backgroundColor('#f0f0f0')
+          .borderRadius(4)
           .onChange((value: string) => {
-            this.item.remarks = value ?? ''
+            this.item.remarks = value
           })
       }
     }
@@ -131,5 +123,11 @@ export struct ExpenseItemCard {
     .padding(12)
     .backgroundColor('#fafafa')
     .borderRadius(8)
+    .shadow({ radius: 4, color: '#1a000000', offsetY: 1 })
+  }
+
+  private getSelectedIndex(): number {
+    let index = this.typeOptions.findIndex(opt => opt.value === this.item.type)
+    return index >= 0 ? index : 0
   }
 }
