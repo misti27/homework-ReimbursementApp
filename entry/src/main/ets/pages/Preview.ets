@@ -1,244 +1,183 @@
-import { FormData, ExpenseItem, HistoryRecord } from '../models/FormData'
-import router from '@ohos.router'
+// entry/src/main/ets/pages/Preview.ets
+import { FormData, ExpenseItem } from '../models/FormData';
+import promptAction from '@ohos.promptAction';
 
-// 初始化持久化存储，key 为 'appHistoryStr'，默认值为空数组的 JSON
-PersistentStorage.PersistProp('appHistoryStr', '[]')
-// 初始化提交成功标记
-AppStorage.SetOrCreate('submitSuccess', false)
+class HistoryRecord {
+  id: number = 0;
+  submitDate: string = '';
+  totalAmount: string = '';
+  department: string = '';
+  reimburser: string = ''; // 对应出差人
+}
 
-@Entry
 @Component
-struct Preview {
-  @State formData: FormData = new FormData()
-  @State expenseList: ExpenseItem[] = []
+export struct Preview {
+  // 使用 @Link 接收主页传来的数据引用
+  @Link formData: FormData;
+  @Link expenseList: ExpenseItem[];
+  @Link showPreview: boolean; // 控制显隐的开关
 
-  aboutToAppear() {
+  // 提交并保存历史记录
+  submitForm() {
+    // 1. 获取现有历史记录 (保持原有逻辑)
+    let historyStr: string = AppStorage.Get<string>('appHistoryStr') || '[]';
+    let historyList: HistoryRecord[] = [];
+
     try {
-      const params = router.getParams() as Record<string, Object>;
+      // JSON.parse 返回的是 any，需要手动映射或断言，这里简单处理异常
+      let parsed = JSON.parse(historyStr) as HistoryRecord[];
+      if (Array.isArray(parsed)) {
+        historyList = parsed;
+      }    } catch (e) {
+      historyList = [];
+    }
 
-      if (params) {
-        // 1. 还原 FormData
-        if (params['formDataStr']) {
-          const jsonStr = params['formDataStr'] as string;
-          const plainObj = JSON.parse(jsonStr) as Record<string, Object>;
-          // 调用我们刚才写的构造函数
-          this.formData = new FormData(plainObj);
-        }
-
-        // 2. 还原 ExpenseList
-        if (params['expenseListStr']) {
-          const jsonStr = params['expenseListStr'] as string;
-          const plainArray = JSON.parse(jsonStr) as Array<Record<string, Object>>;
-
-          this.expenseList = plainArray.map((itemData) => {
-            // 调用构造函数，传入 itemData，这样 ID 不会变，且方法会恢复
-            return new ExpenseItem(itemData);
-          });
-        }
+    // 2. 计算总额
+    let totalAmount = 0;
+    this.expenseList.forEach(item => {
+      // 满足作业要求：数值转换异常处理
+      try {
+        let val = parseFloat(item.amount || '0');
+        if (!isNaN(val)) totalAmount += val;
+      } catch (e) {
+        console.error('Calculation error');
       }
-    } catch (error) {
-      console.error('解析失败', error);
-    }
-  }
+    });
 
-  // 获取总金额（原有方法）
-  getTotalAmount(): number {
-    return this.expenseList.reduce((sum, item) => {
-      return sum + (item.getAmountNumber ? item.getAmountNumber() : 0)
-    }, 0)
-  }
+    let newRecord = new HistoryRecord();
+    newRecord.id = new Date().getTime();
+    newRecord.submitDate = new Date().toLocaleDateString();
+    newRecord.totalAmount = totalAmount.toFixed(2);
+    newRecord.department = this.formData.department || '';
+    newRecord.reimburser = this.formData.travelerName;
+    // 3. 保存
+    historyList.unshift(newRecord);
+    AppStorage.SetOrCreate('appHistoryStr', JSON.stringify(historyList));
 
-  confirmSubmit() {
-    try {
-      // 1. 构建新的历史记录对象
-      const newRecord: HistoryRecord = {
-        id: Date.now().toString(),
-        timestamp: Date.now(),
-        totalAmount: this.getTotalAmount(),
-        // 再次序列化，确保只存数据，不存类的方法
-        summary: `${this.formData.travelerName || '未命名'} - ${this.formData.travelCity || '未知城市'}`,
-        formDataStr: JSON.stringify(this.formData),
-        expenseListStr: JSON.stringify(this.expenseList)
-      }
+    promptAction.showToast({ message: '提交成功！' });
 
-      // 2. 获取现有的历史记录
-      let historyStr = AppStorage.Get<string>('appHistoryStr') || '[]'
-      let historyList = JSON.parse(historyStr) as HistoryRecord[]
+    // 4. 清空表单
+    this.formData = new FormData();
+    this.expenseList = [];
 
-      // 3. 添加新记录到头部
-      historyList.unshift(newRecord)
-
-      // 4. 保存回持久化存储
-      AppStorage.SetOrCreate('appHistoryStr', JSON.stringify(historyList))
-
-      // 5. 设置全局标记：告诉 Index 页面“我已经提交成功了，请清空表单”
-      AppStorage.SetOrCreate('submitSuccess', true)
-
-      // 6. 弹窗并返回
-      AlertDialog.show({
-        message: '提交成功！已保存到历史记录。',
-        confirm: {
-          value: '回到首页',
-          action: () => {
-            // 清空表单，返回 Index 页面
-            AppStorage.SetOrCreate('shouldClearForm', true)
-            router.back({ url: 'pages/Index' })
-          }
-        }
-      })
-
-    } catch (error) {
-      console.error('保存历史记录失败:', error)
-      AlertDialog.show({ message: '提交失败: ' + error.message })
-    }
-  }
-
-  @Builder previewItem(label: string, value: string, highlight: boolean = false) {
-    Flex({
-      justifyContent: FlexAlign.SpaceBetween,
-      alignItems: ItemAlign.Start
-    }) {
-      Text(label + ':')
-        .fontSize(15)
-        .fontColor('#666')
-        .width('35%')
-
-      Text(value)
-        .fontSize(15)
-        .fontWeight(highlight ? FontWeight.Bold : FontWeight.Normal)
-        .fontColor(highlight ? '#1890ff' : '#333')
-        .textAlign(TextAlign.End)
-        .maxLines(3)
-        .width('63%')
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-    }
-    .width('100%')
-    .margin({ bottom: 8 })
+    // 5. 关键：修改状态，返回编辑页
+    this.showPreview = false;
   }
 
   build() {
     Column() {
-      // 顶部标题栏
+      // --- 顶部标题 ---
       Row() {
-        Button('返回')
-          .fontSize(16)
-          .backgroundColor(Color.Transparent)
-          .fontColor(Color.White)
-          .onClick(() => {
-            router.back()
-          })
-
-        Text('报销预览')
+        Text('报销单预览')
           .fontSize(20)
           .fontWeight(FontWeight.Bold)
-          .fontColor(Color.White)
-          .layoutWeight(1)
-          .textAlign(TextAlign.Center)
-
-        Text('').width(60) // 占位
       }
       .width('100%')
-      .height(56)
-      .backgroundColor('#1890ff')
-      .padding({ left: 16, right: 16 })
+      .height(50)
+      .justifyContent(FlexAlign.Center)
+      .backgroundColor('#F1F3F5')
 
-      // 内容区域
-      Scroll() {
-        Column({ space: 16 }) {
-          // 基本信息卡片
-          Column() {
-            Text('基本信息')
-              .fontSize(18)
-              .fontWeight(FontWeight.Bold)
-              .alignSelf(ItemAlign.Start)
-              .margin({ bottom: 12 })
-
-            this.previewItem('出差人', this.formData.travelerName)
-            this.previewItem('部门', this.formData.department)
-            this.previewItem('出差事由', this.formData.purpose)
-            this.previewItem('开始日期', this.formData.startDate)
-            this.previewItem('结束日期', this.formData.endDate)
-            this.previewItem('出差城市', this.formData.travelCity || '未填写')
+      // --- 内容列表 ---
+      List({ space: 15 }) {
+        // 卡片1：基本信息
+        ListItem() {
+          Column({ space: 10 }) {
+            Text('基本信息').fontWeight(FontWeight.Bold).fontSize(16)
+            Divider()
+            this.InfoRow('出差人', this.formData.travelerName)
+            this.InfoRow('部门', this.formData.department)
+            this.InfoRow('出差事由', this.formData.purpose)
+            this.InfoRow('时间范围', `${this.formData.startDate} 至 ${this.formData.endDate}`)
+            this.InfoRow('目的地', this.formData.travelCity)
           }
           .width('100%')
-          .padding(16)
+          .padding(15)
           .backgroundColor(Color.White)
-          .borderRadius(8)
-
-          // 费用明细卡片
-          Column() {
-            Text('费用明细')
-              .fontSize(18)
-              .fontWeight(FontWeight.Bold)
-              .alignSelf(ItemAlign.Start)
-              .margin({ bottom: 12 })
-
-            ForEach(this.expenseList, (item: ExpenseItem, index: number) => {
-              Column({ space: 8 }) {
-                Text(`${index + 1}. ${item.type}`)
-                  .fontSize(16)
-                  .fontWeight(FontWeight.Medium)
-                  .alignSelf(ItemAlign.Start)
-                this.previewItem('金额', `¥${item.getAmountNumber().toFixed(2)}`)
-                this.previewItem('备注', item.remarks || '无')
-              }
-              .width('100%')
-              .padding(12)
-              .backgroundColor('#f5f5f5')
-              .borderRadius(8)
-              .margin({ bottom: 8 })
-            })
-          }
-          .width('100%')
-          .padding(16)
-          .backgroundColor(Color.White)
-          .borderRadius(8)
-
-          // 总金额卡片
-          Column() {
-            this.previewItem('总金额', `¥${this.getTotalAmount().toFixed(2)}`, true)
-          }
-          .width('100%')
-          .padding(16)
-          .backgroundColor('#e6f7ff')
-          .borderRadius(8)
-
-          // 底部按钮
-          Flex({
-            justifyContent: FlexAlign.SpaceEvenly,
-            alignItems: ItemAlign.Center
-          }) {
-            Button('取消')
-              .width('45%')
-              .height(48)
-              .fontSize(16)
-              .backgroundColor('#d9d9d9')
-              .fontColor('#333')
-              .onClick(() => {
-                router.back()
-              })
-
-            Button('确认提交')
-              .width('45%')
-              .height(48)
-              .fontSize(16)
-              .backgroundColor('#52c41a')
-              .fontColor(Color.White)
-              .onClick(() => {
-                this.confirmSubmit()
-              })
-          }
-          .width('100%')
-          .margin({ top: 16, bottom: 24 })
+          .borderRadius(10)
+          .shadow({ radius: 5, color: '#1a000000', offsetY: 2 })
         }
-        .width('100%')
-        .padding(16)
+
+        // 卡片2：费用明细
+        ListItem() {
+          Column({ space: 10 }) {
+            Text('费用明细').fontWeight(FontWeight.Bold).fontSize(16)
+            Divider()
+
+            if (this.expenseList.length === 0) {
+              Text('无费用明细').fontColor(Color.Gray)
+            } else {
+              ForEach(this.expenseList, (item: ExpenseItem) => {
+                Row() {
+                  Column() {
+                    Text(item.type).fontWeight(FontWeight.Medium)
+                  }
+                  .alignItems(HorizontalAlign.Start)
+                  Blank()
+                  Text(`¥ ${item.amount}`).fontWeight(FontWeight.Bold).fontColor('#007DFF')
+                }
+                .width('100%')
+                .padding({ top: 5, bottom: 5 })
+              })
+            }
+            Divider().margin({ top: 10 })
+            // 总计
+            Row() {
+              Text('总计金额').fontWeight(FontWeight.Bold)
+              Blank()
+              Text(`¥ ${this.calculateTotal()}`).fontSize(18).fontColor('#E84026').fontWeight(FontWeight.Bold)
+            }
+          }
+          .width('100%')
+          .padding(15)
+          .backgroundColor(Color.White)
+          .borderRadius(10)
+          .shadow({ radius: 5, color: '#1a000000', offsetY: 2 })
+        }
       }
       .layoutWeight(1)
+      .padding(15)
+
+      // --- 底部按钮 ---
+      Row({ space: 20 }) {
+        Button('返回修改')
+          .backgroundColor('#F5F5F5')
+          .fontColor('#333')
+          .layoutWeight(1)
+          .onClick(() => {
+            // 直接修改 Link 变量返回
+            this.showPreview = false;
+          })
+
+        Button('确认提交')
+          .type(ButtonType.Capsule)
+          .layoutWeight(1)
+          .onClick(() => {
+            this.submitForm();
+          })
+      }
       .width('100%')
+      .padding(15)
+      .backgroundColor(Color.White)
+      .shadow({ radius: 10, color: '#0d000000', offsetY: -5 })
+    }
+    .height('100%')
+    .backgroundColor('#F1F3F5')
+  }
+
+  @Builder InfoRow(label: string, value: string) {
+    Row() {
+      Text(label).width(80).fontColor(Color.Gray)
+      Text(value || '-').layoutWeight(1) // 简单使用 || 处理空显示
     }
     .width('100%')
-    .height('100%')
-    .backgroundColor('#f5f5f5')
+  }
+
+  calculateTotal(): string {
+    let total = 0;
+    this.expenseList.forEach(item => {
+      let val = parseFloat(item.amount || '0');
+      if (!isNaN(val)) total += val;
+    });
+    return total.toFixed(2);
   }
 }

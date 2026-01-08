@@ -1,81 +1,51 @@
-import { FormData, ExpenseItem } from '../models/FormData'
+// entry/src/main/ets/components/ActionButtons.ets
+import { FormData, ExpenseItem } from '../models/FormData';
+import promptAction from '@ohos.promptAction';
 
 @Component
 export struct ActionButtons {
-  @Consume('formData') formData: FormData
-  @Consume('expenseList') expenseList: ExpenseItem[]
-  onShowPreview: (show: boolean) => void = () => {}
+  @Consume formData: FormData;
+  @Consume expenseList: ExpenseItem[];
 
-  handleSubmit() {
-    try {
-      const validation = this.formData?.validate() ?? { isValid: false, errors: ['表单数据无效'] }
-
-      if (!validation.isValid) {
-        AlertDialog.show({
-          message: validation.errors.join('\n')
-        })
-        return
-      }
-
-      if ((this.expenseList?.length ?? 0) === 0) {
-        AlertDialog.show({ message: '请至少添加一项费用明细' })
-        return
-      }
-
-      this.onShowPreview(true)
-
-    } catch (error) {
-      console.error('提交处理异常:', error)
-      AlertDialog.show({ message: '提交失败，请重试' })
-    }
-  }
-
-  handleReset() {
-    AlertDialog.show({
-      message: '确定要清空表单吗？',
-      primaryButton: {
-        value: '确定',
-        action: () => {
-          try {
-            this.formData.travelerName = ''
-            this.formData.department = ''
-            this.formData.purpose = ''
-            this.formData.startDate = ''
-            this.formData.endDate = ''
-            this.formData.travelCity = ''
-            this.expenseList.splice(0, this.expenseList.length)
-          } catch (error) {
-            console.error('重置表单异常:', error)
-          }
-        }
-      },
-      secondaryButton: {
-        value: '取消',
-        action: () => {}
-      }
-    })
-  }
+  // 新增：接收主页传来的状态控制
+  @Link showPreview: boolean;
 
   build() {
-    Flex({
-      justifyContent: FlexAlign.SpaceEvenly,
-      alignItems: ItemAlign.Center
-    }) {
-      Button('预览提交')
-        .width('45%')
-        .height(48)
-        .fontSize(16)
-        .backgroundColor('#1890ff')
-        .onClick(() => this.handleSubmit())
+    Row({ space: 15 }) {
+      // 清空按钮
+      Button('清空')
+        .backgroundColor('#F5F5F5')
+        .fontColor(Color.Red)
+        .layoutWeight(1)
+        .onClick(() => {
+          this.formData = new FormData();
+          this.expenseList = [];
+          promptAction.showToast({ message: '表单已清空' });
+        })
 
-      Button('清空表单')
-        .width('45%')
-        .height(48)
-        .fontSize(16)
-        .backgroundColor('#ff4d4f')
-        .onClick(() => this.handleReset())
+      // 预览提交按钮
+      Button('预览提交')
+        .type(ButtonType.Capsule)
+        .layoutWeight(2)
+        .onClick(() => {
+          // 1. 校验逻辑
+          if (this.formData.validate()) {
+            if (this.expenseList.length === 0) {
+              promptAction.showToast({ message: '请至少添加一条费用明细' });
+              return;
+            }
+
+            // 2. 关键：切换到预览模式，不再使用 router.pushUrl
+            this.showPreview = true;
+
+          } else {
+            promptAction.showToast({ message: '请完善必填信息 (*)' });
+          }
+        })
     }
     .width('100%')
-    .margin({ top: 24, bottom: 16 })
+    .padding({ left: 20, right: 20, top: 10, bottom: 20 })
+    .backgroundColor(Color.White)
+    .shadow({ radius: 10, color: '#0d000000', offsetY: -5 })
   }
 }
