@@ -1,67 +1,53 @@
-// entry/src/main/ets/pages/Preview.ets
 import { FormData, ExpenseItem } from '../models/FormData';
+import { HistoryRecord } from '../models/HistoryRecord';
 import promptAction from '@ohos.promptAction';
-
-class HistoryRecord {
-  id: number = 0;
-  submitDate: string = '';
-  totalAmount: string = '';
-  department: string = '';
-  reimburser: string = ''; // 对应出差人
-}
+import { StorageService } from '../utils/StorageService';
 
 @Component
 export struct Preview {
-  // 使用 @Link 接收主页传来的数据引用
   @Link formData: FormData;
   @Link expenseList: ExpenseItem[];
-  @Link showPreview: boolean; // 控制显隐的开关
+  @Link showPreview: boolean;
+
+  // 计算总金额
+  private calculateTotal(): string {
+    let total = 0;
+    this.expenseList.forEach(item => {
+      // 转换金额，如果为空默认为 '0'
+      let val = parseFloat(item.amount || '0');
+      if (!isNaN(val)) total += val;
+    });
+    // 保留两位小数，返回字符串
+    return total.toFixed(2);
+  }
 
   // 提交并保存历史记录
   submitForm() {
-    // 1. 获取现有历史记录 (保持原有逻辑)
-    let historyStr: string = AppStorage.Get<string>('appHistoryStr') || '[]';
-    let historyList: HistoryRecord[] = [];
+    let newRecord = new HistoryRecord();
 
-    try {
-      // JSON.parse 返回的是 any，需要手动映射或断言，这里简单处理异常
-      let parsed = JSON.parse(historyStr) as HistoryRecord[];
-      if (Array.isArray(parsed)) {
-        historyList = parsed;
-      }    } catch (e) {
-      historyList = [];
+    newRecord.id = new Date().getTime().toString(); // 转为 string
+    newRecord.submitDate = new Date().toLocaleDateString();
+    newRecord.totalAmount = this.calculateTotal();
+    newRecord.department = this.formData.department ?? '';
+    newRecord.reimburser = this.formData.travelerName ?? '';
+
+    // 调用保存方法，并接收返回值
+    const isSuccess = StorageService.saveRecord(newRecord);
+
+    // 判断结果
+    if (isSuccess) {
+      promptAction.showToast({ message: '提交成功' });
+
+      // 清空表单
+      this.formData = new FormData();
+      this.expenseList = [];
+
+      // 返回编辑页
+      this.showPreview = false;
+    } else {
+      console.warn('保存失败，保留现场');
     }
 
-    // 2. 计算总额
-    let totalAmount = 0;
-    this.expenseList.forEach(item => {
-      // 满足作业要求：数值转换异常处理
-      try {
-        let val = parseFloat(item.amount || '0');
-        if (!isNaN(val)) totalAmount += val;
-      } catch (e) {
-        console.error('Calculation error');
-      }
-    });
-
-    let newRecord = new HistoryRecord();
-    newRecord.id = new Date().getTime();
-    newRecord.submitDate = new Date().toLocaleDateString();
-    newRecord.totalAmount = totalAmount.toFixed(2);
-    newRecord.department = this.formData.department || '';
-    newRecord.reimburser = this.formData.travelerName;
-    // 3. 保存
-    historyList.unshift(newRecord);
-    AppStorage.SetOrCreate('appHistoryStr', JSON.stringify(historyList));
-
-    promptAction.showToast({ message: '提交成功！' });
-
-    // 4. 清空表单
-    this.formData = new FormData();
-    this.expenseList = [];
-
-    // 5. 关键：修改状态，返回编辑页
-    this.showPreview = false;
   }
 
   build() {
@@ -124,6 +110,7 @@ export struct Preview {
             Row() {
               Text('总计金额').fontWeight(FontWeight.Bold)
               Blank()
+              // 调用封装好的计算方法
               Text(`¥ ${this.calculateTotal()}`).fontSize(18).fontColor('#E84026').fontWeight(FontWeight.Bold)
             }
           }
@@ -144,7 +131,6 @@ export struct Preview {
           .fontColor('#333')
           .layoutWeight(1)
           .onClick(() => {
-            // 直接修改 Link 变量返回
             this.showPreview = false;
           })
 
@@ -167,17 +153,8 @@ export struct Preview {
   @Builder InfoRow(label: string, value: string) {
     Row() {
       Text(label).width(80).fontColor(Color.Gray)
-      Text(value || '-').layoutWeight(1) // 简单使用 || 处理空显示
+      Text(value || '-').layoutWeight(1)
     }
     .width('100%')
-  }
-
-  calculateTotal(): string {
-    let total = 0;
-    this.expenseList.forEach(item => {
-      let val = parseFloat(item.amount || '0');
-      if (!isNaN(val)) total += val;
-    });
-    return total.toFixed(2);
   }
 }

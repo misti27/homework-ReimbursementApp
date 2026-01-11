@@ -6,7 +6,7 @@ export class FormData {
   endDate: string = ''
   travelCity: string = ''
 
-  // 【新增】构造函数：支持从 JSON 对象还原数据
+  // 构造函数：支持从 JSON 对象还原数据
   constructor(data?: Record<string, Object>) {
     if (data) {
       // 从 JSON 对象中提取数据，使用 ?? 运算符提供默认值防止 null/undefined
@@ -95,11 +95,3 @@ export interface ValidationResult {
   errors: string[]
 }
 
-export interface HistoryRecord {
-  id: string
-  timestamp: number // 提交时间
-  totalAmount: number // 总金额
-  formDataStr: string // 序列化后的基本信息
-  expenseListStr: string // 序列化后的费用列表
-  summary: string
-}

@@ -127,7 +127,6 @@ export struct Calculator {
   }
 
   build() {
-    // 使用 RelativeContainer 实现布局 (符合实验要求)
     RelativeContainer() {
       // 1. 蒙层
       Column()
@@ -148,7 +147,7 @@ export struct Calculator {
       Column() {
         // --- 屏幕显示区域 ---
         Column() {
-          // 【修复点 1】新增：显示计算过程（如 "100 +"）
+          // 新增：显示计算过程
           Text(this.currentOperator ? `${this.previousValue} ${this.currentOperator}` : '')
             .width('100%')
             .height(30)
@@ -182,6 +181,7 @@ export struct Calculator {
               .width('22%')
               .height(50)
               .fontSize(20)
+              .fontColor(Color.Black)
               .backgroundColor('#e0e0e0')
               .onClick(() => this.handleDecimalPoint())
 
@@ -207,7 +207,7 @@ export struct Calculator {
         .layoutWeight(1)
       }
       .width('90%')
-      .height(500) // 稍微调高一点以容纳新的一行字
+      .height(500)
       .backgroundColor(Color.White)
       .borderRadius(12)
       .id('panel')

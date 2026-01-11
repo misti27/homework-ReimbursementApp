@@ -32,6 +32,8 @@ export struct FormField {
         .height(40)
         .backgroundColor('#F1F3F5')
         .borderRadius(20)
+        .placeholderColor('#999999')
+        .fontColor('#182431')
         .onChange((value: string) => {
           this.onChange(value)
         })
