@@ -1,10 +1,19 @@
 import { FormData } from '../models/FormData'
-import { FormField, DateFormField } from './FormField'
+import { FormField, DateFormField, SelectFormField } from './FormField'
 
 @Component
 export struct BaseInfo {
   @Consume('formData') formData: FormData
-
+  private departmentOptions: string[] = [
+    '技术部',
+    '市场部',
+    '销售部',
+    '人力资源部',
+    '财务部',
+    '行政部',
+    '研发部',
+    '运营部'
+  ]
   build() {
     Column() {
       Text('基本信息')
@@ -29,13 +38,20 @@ export struct BaseInfo {
 
         // 2. 部门
         ListItem() {
-          FormField({
+          SelectFormField({
             label: '部门',
             value: this.formData.department,
-            placeholder: '请输入部门',
+            placeholder: '请选择部门',
             required: true,
-            onChange: (val: string) => {
-              this.formData.department = val
+            options: this.departmentOptions,
+            onSelectClick: () => {
+              TextPickerDialog.show({
+                range: this.departmentOptions,
+                selected: this.departmentOptions.indexOf(this.formData.department),
+                onAccept: (value: TextPickerResult) => {
+                  this.formData.department = this.departmentOptions[value.index as number]
+                }
+              })
             }
           })
         }
