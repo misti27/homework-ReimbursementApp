@@ -40,8 +40,64 @@ export struct FormField {
     .height(48)
   }
 }
-
 /**
+ * 下拉框选择组件
+ */
+@Component
+export struct SelectFormField {
+  @Prop label: string = ''
+  @Prop value: string = ''
+  @Prop placeholder: string = ''
+  @Prop required: boolean = false
+  @Prop options: string[] = [] // 选项列表
+  onSelectClick: () => void = () => {}
+
+  build() {
+    Flex({
+      direction: FlexDirection.Row,
+      alignItems: ItemAlign.Center,
+      justifyContent: FlexAlign.SpaceBetween
+    }) {
+      Row() {
+        if (this.required) {
+          Text('*')
+            .fontSize(16)
+            .fontColor('#ff4d4f')
+            .margin({ right: 4 })
+        }
+        Text(this.label)
+          .fontSize(16)
+          .width(80)
+      }
+
+      Row() {
+        Text(this.value || this.placeholder)
+          .fontSize(16)
+          .fontColor(this.value ? '#182431' : '#999999')
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .layoutWeight(1)
+
+        // 下拉箭头图标
+        Text('▼')
+          .fontSize(12)
+          .fontColor('#999999')
+          .margin({ left: 8 })
+      }
+      .width('60%')
+      .height(40)
+      .backgroundColor('#F1F3F5')
+      .borderRadius(20)
+      .padding({ left: 16, right: 16 })
+      .alignItems(VerticalAlign.Center)
+      .onClick(() => {
+        this.onSelectClick()
+      })
+    }
+    .width('100%')
+    .height(48)
+  }
+}/**
  * 日期选择组件（DateFormField）
  */
 @Component
